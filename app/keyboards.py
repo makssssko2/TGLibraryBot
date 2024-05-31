@@ -3,7 +3,7 @@ from aiogram.types import (KeyboardButton, InlineKeyboardMarkup,ReplyKeyboardMar
 
 main_menu = ReplyKeyboardMarkup(keyboard=[
     [KeyboardButton(text="\U0001F4DA Прочитанные"),KeyboardButton(text="\U00002B50 Рекомендации")],
-    [KeyboardButton(text="\U0001F495 Избранное")],
+    [KeyboardButton(text="\U0001F495 Избранное"), KeyboardButton(text="\U0001F50E Поиск")],
 ],resize_keyboard=True)
 
 def get_swiperMenu(index: int,length: int,isFavourite: bool = False):

@@ -6,56 +6,36 @@ from aiogram.fsm.context import FSMContext
 
 import app.States as st
 import app.keyboards as kb
+from config import STATIC_DATA
 
 router = Router()
 
 @router.message(CommandStart())
 async def cmd_start(message: Message):
-    await message.answer('<b>Вжухх !</b>\n\nСкорее добавляй свои книги в "Прочитанные" и я подберу тебе что-нибудь.',reply_markup=kb.main_menu,parse_mode=ParseMode.HTML)
+    await message.answer('<b>Вжухх !</b>\n\nСкорее добавляй свои книги в "Прочитанные" и я подберу тебе что-нибудь.',
+                         reply_markup=kb.main_menu,
+                         parse_mode=ParseMode.HTML)
 
 
 @router.message(F.text == '\U0001F4DA Прочитанные')
 async def cmd_books(message: Message, state: FSMContext):
-    state.clear()
+    await state.clear()
     await state.set_state(st.Readen)
-    await state.update_data(booksArr= [
-                                        {
-                                            'image': 'https://sun9-44.userapi.com/impf/c631929/v631929682/1d7b9/rFSOkvhanto.jpg?size=604x496&quality=96&sign=037d7a494759a107dd54d1d87886b891&type=album',
-                                            'name': 'Как жить с огромным членом ?', 'author': 'Поркшеян В.М',
-                                            'description': 'Описание описание описание описание описание описание',
-                                            'favourite': False},
-                                        {
-                                            'image': 'https://aigis.club/uploads/posts/2022-05/1653072677_11-adonius-club-p-oboi-s-obezyanami-krasivie-15.jpg',
-                                            'name': 'Почему я преподаю ИИ', 'author': 'Ляхницкая О.В',
-                                            'description': 'Описание описание описание описание описание описание',
-                                            'favourite': False},
-                                        {
-                                            'image': 'https://zefirka.net/wp-content/uploads/2020/06/serdityj-kot-kotoryj-oxranyaet-arbuznuyu-fermu-v-tailande-1.jpg',
-                                            'name': 'Биография', 'author': 'Иванов И.И',
-                                            'description': 'Описание описание описание описание описание описание',
-                                            'favourite': False},
-                                       {
-                                           'image': 'https://sun9-44.userapi.com/impf/c631929/v631929682/1d7b9/rFSOkvhanto.jpg?size=604x496&quality=96&sign=037d7a494759a107dd54d1d87886b891&type=album',
-                                           'name': 'Как жить с огромным членом ?', 'author': 'Поркшеян В.М',
-                                           'description': 'Описание описание описание описание описание описание',
-                                           'favourite': False},
-                                       {
-                                           'image': 'https://aigis.club/uploads/posts/2022-05/1653072677_11-adonius-club-p-oboi-s-obezyanami-krasivie-15.jpg',
-                                           'name': 'Почему я преподаю ИИ', 'author': 'Ляхницкая О.В',
-                                           'description': 'Описание описание описание описание описание описание',
-                                           'favourite': False},
-                                       {
-                                           'image': 'https://zefirka.net/wp-content/uploads/2020/06/serdityj-kot-kotoryj-oxranyaet-arbuznuyu-fermu-v-tailande-1.jpg',
-                                           'name': 'Биография', 'author': 'Иванов И.И',
-                                           'description': 'Описание описание описание описание описание описание',
-                                           'favourite': False},
-           ])
+    await state.update_data(booksArr=STATIC_DATA)
     await state.update_data(currentIndex=0)
 
     data = await state.get_data()
     books = data["booksArr"]
     index = data["currentIndex"]
-    await message.answer_photo(books[index]['image'],f'<b>{books[index]["author"]} - {books[index]["name"]}</b>\n\n{books[index]["description"]}',
+
+    caption = f'<b>{books[index]["name"]}\n' \
+              f'Автор: {books[index]["author"]}\n\n' \
+              f'Издание: {books[index]["publisher"]}\n' \
+              f'Год: {books[index]["year"]}</b>' \
+              f'\n\n{books[index]["description"]}'
+
+    await message.answer_photo(books[index]['image'],
+                               caption,
                                reply_markup=kb.get_swiperMenu(index,len(books),books[index]["favourite"]),
                                parse_mode=ParseMode.HTML)
 
@@ -67,8 +47,15 @@ async def nextBook(callback: CallbackQuery,state: FSMContext):
     # либо заново подгружать обновленные данные и брать индекс оттуда. Если найдешь лучший вариант - исправь
     index = data["currentIndex"] + 1
     books = data["booksArr"]
+
+    caption = f'<b>{books[index]["name"]}\n' \
+              f'Автор: {books[index]["author"]}\n\n' \
+              f'Издание: {books[index]["publisher"]}\n' \
+              f'Год: {books[index]["year"]}</b>' \
+              f'\n\n{books[index]["description"]}'
+
     await callback.message.edit_media(InputMediaPhoto(media=books[index]['image'],
-                                                      caption=f'<b>{books[index]["author"]} - {books[index]["name"]}</b>\n\n{books[index]["description"]}',
+                                                      caption=caption,
                                                       parse_mode=ParseMode.HTML,
                                                       ))
     await callback.message.edit_reply_markup(reply_markup=kb.get_swiperMenu(index,len(books),books[index]["favourite"]))
@@ -82,8 +69,15 @@ async def prevBook(callback: CallbackQuery,state: FSMContext):
     # либо заново подгружать обновленные данные и брать индекс оттуда. Если найдешь лучший вариант - исправь
     index = data["currentIndex"] - 1
     books = data["booksArr"]
+
+    caption = f'<b>{books[index]["name"]}\n' \
+              f'Автор: {books[index]["author"]}\n\n' \
+              f'Издание: {books[index]["publisher"]}\n' \
+              f'Год: {books[index]["year"]}</b>' \
+              f'\n\n{books[index]["description"]}'
+
     await callback.message.edit_media(InputMediaPhoto(media=books[index]['image'],
-                                                      caption=f'<b>{books[index]["author"]} - {books[index]["name"]}</b>\n\n{books[index]["description"]}',
+                                                      caption=caption,
                                                       parse_mode=ParseMode.HTML,
                                                       ))
     await callback.message.edit_reply_markup(reply_markup=kb.get_swiperMenu(index, len(books),books[index]["favourite"]))
