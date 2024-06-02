@@ -5,3 +5,9 @@ from aiogram.fsm.state import State, StatesGroup
 class Readen(StatesGroup):
     booksArr = State()
     currentIndex = State()
+
+# Состояние для вкладки "Избранное"
+class Favorite(StatesGroup):
+    booksArr = State()
+    currentIndex = State()
+
