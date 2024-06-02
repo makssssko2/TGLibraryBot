@@ -1,0 +1,3 @@
+class RS:
+    def __init__(self):
+        ...
