@@ -1,15 +1,13 @@
 ```python
 from DB.DB import DB
-from DB.enums.BookStatus import BookStatus
 from DB.TypedDict.BooksTypedDict import UserShelfBookTypedDict, BookInfoTypedDict
 
 db = DB()
 
 telegram_id = 123
 book_id = 1
-status = BookStatus.read
 
-db.add_book_to_user_shelf(telegram_id, book_id, status) # добавить книгу в список
+db.add_book_to_user_shelf(telegram_id, book_id) # добавить книгу в список
 
 db.remove_book_from_shelf(telegram_id, book_id) # удалить книгу из списка
 
