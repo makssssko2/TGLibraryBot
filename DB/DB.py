@@ -1,11 +1,10 @@
 from typing import List, Type
 from sqlalchemy import create_engine, text, func, Table, Column, Integer, String, or_
 from sqlalchemy.orm import sessionmaker
-from .enums.BookStatus import BookStatus
-from .models import Base, Books, Users, UserShelf, UserRate
+from .models import Base, Books, Users, UserShelf, UserFavorite
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import joinedload
-from .TypedDict.BooksTypedDict import UserShelfBookTypedDict, BookInfoTypedDict
+from .TypedDict.BooksTypedDict import BookInfoTypedDict
 
 
 class DB:
@@ -60,17 +59,15 @@ class DB:
     def add_book_to_user_shelf(
             self,
             telegram_id: int,
-            book_id: int,
-            book_status: BookStatus
+            book_id: int
     ) -> bool:
         """Добавляет книгу в полку пользователя.
            Если пользователя нет в базе данных, то он создаётся.
            Если книга уже есть у пользователя, то возвращается False.
 
         Args:
-            telegram_id: Telegram ID пользователя.
+            telegram_id: Telegram ID пользователя,
             book_id: ID книги.
-            book_status: Статус книги (например, "reading", "completed").
 
         Returns:
             True, если книга успешно добавлена, False в противном случае.
@@ -85,16 +82,16 @@ class DB:
                     session.add(user)
                     session.commit()
 
-                # Проверяем, есть ли уже эта книга у пользователя
                 existing_item = session.query(UserShelf).filter_by(
                     user_id=user.id, book_id=book_id
                 ).first()
 
                 if existing_item:
-                    return False  # Книга уже есть на полке
+                    return False
 
                 new_shelf_item = UserShelf(
-                    user_id=user.id, book_id=book_id, book_status=book_status
+                    user_id=user.id,
+                    book_id=book_id
                 )
                 session.add(new_shelf_item)
                 session.commit()
@@ -104,7 +101,7 @@ class DB:
                 session.rollback()
                 return False
 
-    def get_user_bookshelf(self, telegram_id: int) -> list[UserShelfBookTypedDict]:
+    def get_user_bookshelf(self, telegram_id: int) -> list[BookInfoTypedDict]:
         """Возвращает список книг на полке пользователя по его telegram_id.
 
         Args:
@@ -129,7 +126,7 @@ class DB:
                 .all()
             )
 
-            books: list[UserShelfBookTypedDict] = [
+            books: list[BookInfoTypedDict] = [
                 {
                     "book_id": item.book.id,
                     "litres_id": item.book.litres_id,
@@ -137,54 +134,13 @@ class DB:
                     "description": item.book.description,
                     "author": item.book.author,
                     "name": item.book.name,
-                    "book_status": item.book_status.value
+                    "publisher": item.book.publisher,
+                    "year": item.book.year
                 }
                 for item in bookshelf_items
             ]
 
             return books
-
-    def update_book_status(
-            self,
-            telegram_id: int,
-            book_id: int,
-            new_status: BookStatus
-    ) -> bool:
-        """Обновляет статус книги в UserShelf.
-
-        Args:
-            telegram_id: Telegram ID пользователя.
-            book_id: ID книги.
-            new_status: Новый статус книги.
-
-        Returns:
-            True, если статус успешно обновлён, False в противном случае.
-        """
-        with self.__sessionmaker() as session:
-            try:
-                user = session.query(Users).filter_by(telegram_id=telegram_id).first()
-
-                if not user:
-                    user = Users(telegram_id=telegram_id)
-                    session.add(user)
-                    session.commit()
-
-                shelf_item = (
-                    session.query(UserShelf)
-                    .filter_by(user_id=user.id, book_id=book_id)
-                    .first()
-                )
-
-                if shelf_item:
-                    shelf_item.book_status = new_status
-                    session.commit()
-                    return True
-                else:
-                    return False
-
-            except IntegrityError:
-                session.rollback()
-                return False
 
     def remove_book_from_shelf(
             self,
@@ -250,7 +206,6 @@ class DB:
                 .all()
             )
 
-
             books: list[BookInfoTypedDict] = [
                 {
                     "book_id": int(item.id),
@@ -258,7 +213,9 @@ class DB:
                     "picture": str(item.picture),
                     "description": str(item.description),
                     "author": str(item.author),
-                    "name": str(item.name)
+                    "name": str(item.name),
+                    "publisher": str(item.publisher),
+                    "year": int(item.year)
                 }
                 for item in books_
             ]
@@ -277,3 +234,195 @@ class DB:
         with self.__sessionmaker() as session:
             books = session.query(Books).filter(Books.id.in_(book_ids)).all()
             return books
+
+    def add_book_to_favorites(self, telegram_id: int, book_id: int) -> bool:
+        """Добавляет книгу в избранное пользователя.
+           Если пользователя нет в базе данных, то он создаётся.
+           Если книга уже есть в избранном, то возвращается False.
+
+        Args:
+            telegram_id: Telegram ID пользователя.
+            book_id: ID книги.
+
+        Returns:
+            True, если книга успешно добавлена, False в противном случае.
+        """
+
+        with self.__sessionmaker() as session:
+            try:
+                user = session.query(Users).filter_by(telegram_id=telegram_id).first()
+
+                if not user:
+                    user = Users(telegram_id=telegram_id)
+                    session.add(user)
+                    session.commit()
+
+                existing_item = session.query(UserFavorite).filter_by(
+                    user_id=user.id, book_id=book_id
+                ).first()
+
+                if existing_item:
+                    return False
+
+                new_favorite_item = UserFavorite(
+                    user_id=user.id, book_id=book_id
+                )
+                session.add(new_favorite_item)
+                session.commit()
+                return True
+
+            except IntegrityError:
+                session.rollback()
+                return False
+
+    def remove_book_from_favorites(self, telegram_id: int, book_id: int) -> bool:
+        """Удаляет книгу из избранного пользователя.
+           Если пользователя нет в базе данных, то он не создаётся.
+
+        Args:
+            telegram_id: Telegram ID пользователя.
+            book_id: ID книги.
+
+        Returns:
+            True, если книга успешно удалена, False в противном случае.
+        """
+
+        with self.__sessionmaker() as session:
+            try:
+                user = session.query(Users).filter_by(telegram_id=telegram_id).first()
+
+                if not user:
+                    return False
+
+                favorite_item = (
+                    session.query(UserFavorite)
+                    .filter_by(user_id=user.id, book_id=book_id)
+                    .first()
+                )
+
+                if favorite_item:
+                    session.delete(favorite_item)
+                    session.commit()
+                    return True
+
+                return False
+
+            except Exception:
+                session.rollback()
+                return False
+
+    def get_user_favorites(self, telegram_id: int) -> List[BookInfoTypedDict]:
+        """Возвращает список избранных книг пользователя по его telegram_id.
+
+        Args:
+            telegram_id: Telegram ID пользователя.
+
+        Returns:
+            Список BookInfoTypedDict, представляющих избранные книги пользователя.
+        """
+
+        with self.__sessionmaker() as session:
+            user = session.query(Users).filter_by(telegram_id=telegram_id).first()
+
+            if not user:
+                user = Users(telegram_id=telegram_id)
+                session.add(user)
+                session.commit()
+
+            favorite_books = (
+                session.query(UserFavorite)
+                .options(joinedload(UserFavorite.book))
+                .filter(UserFavorite.user_id == user.id)
+                .all()
+            )
+
+            books: List[BookInfoTypedDict] = [
+                {
+                    "book_id": item.book.id,
+                    "litres_id": item.book.litres_id,
+                    "picture": item.book.picture,
+                    "description": item.book.description,
+                    "author": item.book.author,
+                    "name": item.book.name,
+                    "publisher": item.book.publisher,
+                    "year": item.book.year
+                }
+                for item in favorite_books
+            ]
+
+            return books
+
+    def is_book_favorite(self, telegram_id: int, book_id: int) -> bool:
+        """Проверяет в избранном книга или нет
+
+            Args:
+                telegram_id: Telegram ID пользователя.
+                book_id: ID книги.
+
+            Returns:
+                True, если книга в избранном, False в противном случае.
+            """
+
+        with self.__sessionmaker() as session:
+            try:
+                user = session.query(Users).filter_by(telegram_id=telegram_id).first()
+
+                if not user:
+                    return False
+
+                favorite_item = (
+                    session.query(UserFavorite)
+                    .filter_by(user_id=user.id, book_id=book_id)
+                    .first()
+                )
+
+                if favorite_item:
+                    return True
+
+                return False
+
+            except Exception:
+                session.rollback()
+                return False
+
+    def toggle_favorite(self, telegram_id: int, book_id: int) -> bool:
+        """Добавляет или удаляет книгу из избранного пользователя в зависимости от её текущего статуса.
+
+        Args:
+            telegram_id: Telegram ID пользователя.
+            book_id: ID книги.
+
+        Returns:
+            True, если операция выполнена успешно, False в противном случае.
+        """
+
+        with self.__sessionmaker() as session:
+            try:
+                user = session.query(Users).filter_by(telegram_id=telegram_id).first()
+
+                if not user:
+                    user = Users(telegram_id=telegram_id)
+                    session.add(user)
+                    session.commit()
+
+                favorite_item = session.query(UserFavorite).filter_by(
+                    user_id=user.id, book_id=book_id
+                ).first()
+
+                if favorite_item:
+                    # Книга в избранном, удаляем её
+                    session.delete(favorite_item)
+                    session.commit()
+                    return True
+                else:
+                    # Книга не в избранном, добавляем её
+                    new_favorite_item = UserFavorite(
+                        user_id=user.id, book_id=book_id
+                    )
+                    session.add(new_favorite_item)
+                    session.commit()
+                    return True
+
+            except IntegrityError:
+                session.rollback()
+                return False

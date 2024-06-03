@@ -1,7 +1,5 @@
-from sqlalchemy import Column, Integer, String, ForeignKey
+from sqlalchemy import ForeignKey
 from sqlalchemy.orm import DeclarativeBase, relationship
-from DB.enums.BookStatus import BookStatus
-from DB.enums.BookRate import BookRate
 from sqlalchemy.orm import Mapped
 from sqlalchemy.orm import mapped_column
 
@@ -40,12 +38,12 @@ class UserShelf(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     user_id: Mapped[int] = mapped_column(ForeignKey('users.id'))
     book_id: Mapped[int] = mapped_column(ForeignKey('books.id'))
-    book_status: Mapped[BookStatus]
     book = relationship("Books")
 
-class UserRate(Base):
-    __tablename__ = 'user_rate'
+
+class UserFavorite(Base):
+    __tablename__ = 'user_favorite'
     id: Mapped[int] = mapped_column(primary_key=True)
     user_id: Mapped[int] = mapped_column(ForeignKey('users.id'))
     book_id: Mapped[int] = mapped_column(ForeignKey('books.id'))
-    rate: Mapped[BookRate]
+    book = relationship("Books")
