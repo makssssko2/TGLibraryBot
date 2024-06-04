@@ -15,3 +15,6 @@ class Search(StatesGroup):
     currentIndex = State()
     input = State()
 
+# Состояние для вкладки "Рекомендации"
+class Recommend(StatesGroup):
+    currentIndex = State()

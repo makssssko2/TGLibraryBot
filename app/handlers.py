@@ -131,6 +131,39 @@ async def cmd_favourite(message: Message, state: FSMContext):
                                parse_mode=ParseMode.HTML)
 
 
+
+@router.message(F.text == '\U00002B50 Рекомендации')
+async def cmd_recommend(message: Message, state: FSMContext):
+
+    await state.clear()
+    await state.set_state(st.Recommend)
+    await state.update_data(currentIndex=0)
+
+    data = await state.get_data()
+    books = db.get_user_favorites(message.chat.id) #Здесь тот метод которым подтягивать рекомендации
+
+    if(len(books) == 0):
+        await message.answer(
+            '<b>Пока что мы не можем ничего вам порекомендовать, добавьте книги в прочитанные...</b>\n\nНайти свою любимую книгу можно в меню <b>"Поиск"</b>',
+            reply_markup=kb.main_menu,
+            parse_mode=ParseMode.HTML)
+        return
+
+    index = data["currentIndex"]
+
+    caption = f'<b>{books[index]["name"]}\n' \
+              f'Автор: {books[index]["author"]}\n\n' \
+              f'Издание: {books[index]["publisher"]}\n' \
+              f'Год: {books[index]["year"]}</b>' \
+              f'\n\n{books[index]["description"]}'
+
+    await message.answer_photo(books[index]['picture'],
+                               caption,
+                               # Тут тоже нужно передать четвертый параметр является ли книга прочитанной !!!
+                               reply_markup=kb.get_swiper_menu(index, len(books), db.is_book_favorite(message.chat.id, books[index]['book_id'])),
+                               parse_mode=ParseMode.HTML)
+
+
 @router.callback_query(F.data == 'next')
 async def nextBook(callback: CallbackQuery, state: FSMContext):
     data = await state.get_data()
@@ -144,6 +177,9 @@ async def nextBook(callback: CallbackQuery, state: FSMContext):
         books = db.get_user_bookshelf(callback.message.chat.id)
     elif await state.get_state() == st.Search:
         books = db.search_book(data["input"])
+    elif await state.get_state() == st.Recommend:
+        # Здесь заменить метод
+        books = db.get_user_bookshelf(callback.message.chat.id)
     else:
         books = db.get_user_favorites(callback.message.chat.id)
     caption = f'<b>{books[index]["name"]}\n' \
@@ -180,6 +216,9 @@ async def prevBook(callback: CallbackQuery, state: FSMContext):
         books = db.get_user_bookshelf(callback.message.chat.id)
     elif await state.get_state() == st.Search:
         books = db.search_book(data["input"])
+    elif await state.get_state() == st.Recommend:
+        # Здесь заменить метод
+        books = db.get_user_bookshelf(callback.message.chat.id)
     else:
         books = db.get_user_favorites(callback.message.chat.id)
 
@@ -214,6 +253,9 @@ async def toggleFavourite(callback: CallbackQuery,state: FSMContext):
         books = db.get_user_bookshelf(callback.message.chat.id)
     elif await state.get_state() == st.Search:
         books = db.search_book(data["input"])
+    elif await state.get_state() == st.Recommend:
+        # Здесь заменить метод
+        books = db.get_user_bookshelf(callback.message.chat.id)
     else:
         books = db.get_user_favorites(callback.message.chat.id)
 
@@ -266,6 +308,11 @@ async def toggleReaden(callback: CallbackQuery,state: FSMContext):
     index = data["currentIndex"]
 
     if await state.get_state() == st.Readen:
+        books = db.get_user_bookshelf(callback.message.chat.id)
+    elif await state.get_state() == st.Search:
+        books = db.search_book(data["input"])
+    elif await state.get_state() == st.Recommend:
+        # Здесь заменить метод
         books = db.get_user_bookshelf(callback.message.chat.id)
     else:
         books = db.get_user_favorites(callback.message.chat.id)
