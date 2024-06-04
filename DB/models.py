@@ -18,7 +18,7 @@ class Books(Base):
     name: Mapped[str]
     publisher: Mapped[str] = mapped_column(nullable=True)
     series: Mapped[str]
-    year: Mapped[int] = mapped_column(nullable=True)
+    year: Mapped[str] = mapped_column(nullable=True)
     ISBN: Mapped[str] = mapped_column(nullable=True)
     description: Mapped[str]
     age: Mapped[int]

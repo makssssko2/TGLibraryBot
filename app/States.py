@@ -3,15 +3,14 @@ from aiogram.fsm.state import State, StatesGroup
 
 # Состояние для вкладки "Прочитанные"
 class Readen(StatesGroup):
-    currentIndex = State()
+    pass
 
 
 # Состояние для вкладки "Избранное"
 class Favorite(StatesGroup):
-    currentIndex = State()
+    pass
+
 
 # Состояние для вкладки "Поиск"
 class Search(StatesGroup):
-    currentIndex = State()
     input = State()
-

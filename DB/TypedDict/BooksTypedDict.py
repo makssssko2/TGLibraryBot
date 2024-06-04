@@ -9,4 +9,4 @@ class BookInfoTypedDict(TypedDict):
     name: str
     publisher: str
     description: str
-    year: int
+    year: str

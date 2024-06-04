@@ -84,7 +84,8 @@ class DB:
                     session.commit()
 
                 existing_item = session.query(UserShelf).filter_by(
-                    user_id=user.id, book_id=book_id
+                    user_id=user.id,
+                    book_id=book_id
                 ).first()
 
                 if existing_item:
@@ -216,7 +217,7 @@ class DB:
                     "author": str(item.author),
                     "name": str(item.name),
                     "publisher": str(item.publisher),
-                    "year": int(item.year)
+                    "year": str(item.year)
                 }
                 for item in books_
             ]
@@ -243,7 +244,7 @@ class DB:
                     "author": str(item.author),
                     "name": str(item.name),
                     "publisher": str(item.publisher),
-                    "year": int(item.year)
+                    "year": str(item.year)
                 }
                 for item in books_
             ]
@@ -365,6 +366,39 @@ class DB:
             ]
 
             return books
+
+    def is_book_readen(self, telegram_id: int, book_id: int) -> bool:
+        """Проверяет прочитанная книга или нет
+
+        Args:
+            telegram_id: Telegram ID пользователя.
+            book_id: ID книги.
+
+        Returns:
+            True, если книга в избранном, False в противном случае.
+        """
+
+        with self.__sessionmaker() as session:
+            try:
+                user = session.query(Users).filter_by(telegram_id=telegram_id).first()
+
+                if not user:
+                    return False
+
+                favorite_item = (
+                    session.query(UserShelf)
+                    .filter_by(user_id=user.id, book_id=book_id)
+                    .first()
+                )
+
+                if favorite_item:
+                    return True
+
+                return False
+
+            except Exception:
+                session.rollback()
+                return False
 
     def is_book_favorite(self, telegram_id: int, book_id: int) -> bool:
         """Проверяет в избранном книга или нет
