@@ -13,6 +13,7 @@ class DB:
         self.__engine = create_engine('sqlite:///AI.db')
         Base.metadata.create_all(self.__engine)
         self.__sessionmaker = sessionmaker(bind=self.__engine)
+        self._search_content = None
 
     def add_book(
             self,
@@ -222,7 +223,7 @@ class DB:
 
         return books
 
-    def get_books_by_ids(self, book_ids: List[int]) -> list[Type[Books]]:
+    def get_books_by_ids(self, book_ids: List[int]) -> list[BookInfoTypedDict]:
         """Получает книги из базы данных по списку ID.
 
         Args:
@@ -232,7 +233,20 @@ class DB:
             Список объектов `Books` из базы данных, соответствующих указанным ID.
         """
         with self.__sessionmaker() as session:
-            books = session.query(Books).filter(Books.id.in_(book_ids)).all()
+            books_ = session.query(Books).filter(Books.id.in_(book_ids)).all()
+            books: list[BookInfoTypedDict] = [
+                {
+                    "book_id": int(item.id),
+                    "litres_id": int(item.litres_id),
+                    "picture": str(item.picture),
+                    "description": str(item.description),
+                    "author": str(item.author),
+                    "name": str(item.name),
+                    "publisher": str(item.publisher),
+                    "year": int(item.year)
+                }
+                for item in books_
+            ]
             return books
 
     def add_book_to_favorites(self, telegram_id: int, book_id: int) -> bool:
