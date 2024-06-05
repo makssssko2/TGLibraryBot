@@ -330,9 +330,9 @@ async def toggleReaden(callback: CallbackQuery, state: FSMContext):
     cur_state = await state.get_state()
     if cur_state == st.Readen:
         books = db.get_user_bookshelf(callback.message.chat.id)
-    elif cur_state == st.Favorite or cur_state == st.Recommend:
+    elif cur_state == st.Favorite:
         books = db.get_user_favorites(callback.message.chat.id)
-    elif cur_state == st.Search:
+    elif cur_state == st.Search or cur_state == st.Recommend:
         books = data["books"]
 
     is_readen = db.is_book_readen(callback.message.chat.id, books[index]['book_id'])
