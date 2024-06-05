@@ -14,3 +14,7 @@ class Favorite(StatesGroup):
 # Состояние для вкладки "Поиск"
 class Search(StatesGroup):
     input = State()
+
+
+class Recommend(StatesGroup):
+    pass

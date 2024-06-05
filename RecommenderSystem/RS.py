@@ -54,7 +54,7 @@ class RecommenderSystem:
         dump((self.tfidf_matrix, self.tfidf, self.df), self.model_filename)
         print("Модель TF-IDF сохранена на диск.")
 
-    def get_recommendations(self, book_ids: List[int], top_n: int = 5) -> list[Any] | list[dict[str, int]]:
+    def get_recommendations(self, book_ids: List[int], top_n: int = 5) -> list[int]:
         """Возвращает рекомендации на основе списка ID прочитанных книг.
 
         Args:
@@ -86,8 +86,8 @@ class RecommenderSystem:
 
         recommendations = []
         for _, book in recommended_books.iterrows():
-            recommendations.append({
-                "book_id": int(book['id']),
-            })
+            recommendations.append(
+                int(book['id'])
+            )
 
         return recommendations
