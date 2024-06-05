@@ -13,6 +13,7 @@ class DB:
         self.__engine = create_engine('sqlite:///AI.db')
         Base.metadata.create_all(self.__engine)
         self.__sessionmaker = sessionmaker(bind=self.__engine)
+        self._search_content = None
 
     def add_book(
             self,
@@ -83,7 +84,8 @@ class DB:
                     session.commit()
 
                 existing_item = session.query(UserShelf).filter_by(
-                    user_id=user.id, book_id=book_id
+                    user_id=user.id,
+                    book_id=book_id
                 ).first()
 
                 if existing_item:
@@ -215,14 +217,14 @@ class DB:
                     "author": str(item.author),
                     "name": str(item.name),
                     "publisher": str(item.publisher),
-                    "year": int(item.year)
+                    "year": str(item.year)
                 }
                 for item in books_
             ]
 
         return books
 
-    def get_books_by_ids(self, book_ids: List[int]) -> list[Type[Books]]:
+    def get_books_by_ids(self, book_ids: List[int]) -> list[BookInfoTypedDict]:
         """Получает книги из базы данных по списку ID.
 
         Args:
@@ -232,7 +234,20 @@ class DB:
             Список объектов `Books` из базы данных, соответствующих указанным ID.
         """
         with self.__sessionmaker() as session:
-            books = session.query(Books).filter(Books.id.in_(book_ids)).all()
+            books_ = session.query(Books).filter(Books.id.in_(book_ids)).all()
+            books: list[BookInfoTypedDict] = [
+                {
+                    "book_id": int(item.id),
+                    "litres_id": int(item.litres_id),
+                    "picture": str(item.picture),
+                    "description": str(item.description),
+                    "author": str(item.author),
+                    "name": str(item.name),
+                    "publisher": str(item.publisher),
+                    "year": str(item.year)
+                }
+                for item in books_
+            ]
             return books
 
     def add_book_to_favorites(self, telegram_id: int, book_id: int) -> bool:
@@ -351,6 +366,39 @@ class DB:
             ]
 
             return books
+
+    def is_book_readen(self, telegram_id: int, book_id: int) -> bool:
+        """Проверяет прочитанная книга или нет
+
+        Args:
+            telegram_id: Telegram ID пользователя.
+            book_id: ID книги.
+
+        Returns:
+            True, если книга в избранном, False в противном случае.
+        """
+
+        with self.__sessionmaker() as session:
+            try:
+                user = session.query(Users).filter_by(telegram_id=telegram_id).first()
+
+                if not user:
+                    return False
+
+                favorite_item = (
+                    session.query(UserShelf)
+                    .filter_by(user_id=user.id, book_id=book_id)
+                    .first()
+                )
+
+                if favorite_item:
+                    return True
+
+                return False
+
+            except Exception:
+                session.rollback()
+                return False
 
     def is_book_favorite(self, telegram_id: int, book_id: int) -> bool:
         """Проверяет в избранном книга или нет
