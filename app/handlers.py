@@ -9,6 +9,7 @@ import app.keyboards as kb
 from config import STATIC_DATA
 from DB.DB import DB
 from RecommenderSystem.RS import RecommenderSystem
+from utils.BooksUtils import BooksUtils
 
 router = Router()
 db = DB()
@@ -44,12 +45,7 @@ async def cmd_books(message: Message, state: FSMContext):
         return
 
     index = data["currentIndex"]
-
-    caption = f'<b>{books[index]["name"]}\n' \
-              f'Автор: {books[index]["author"]}\n\n' \
-              f'Издание: {books[index]["publisher"]}\n' \
-              f'Год: {books[index]["year"]}</b>' \
-              f'\n\n{books[index]["description"]}'
+    caption = BooksUtils.get_book_caption(books[index], index)
 
     await message.answer_photo(
         books[index]['picture'],
@@ -93,11 +89,7 @@ async def search(message: Message, state: FSMContext):
 
     index = data["currentIndex"]
 
-    caption = f'<b>{books[index]["name"]}\n' \
-              f'Автор: {books[index]["author"]}\n\n' \
-              f'Издание: {books[index]["publisher"]}\n' \
-              f'Год: {books[index]["year"]}</b>' \
-              f'\n\n{books[index]["description"]}'
+    caption = BooksUtils.get_book_caption(books[index], index)
 
     await message.answer_photo(
         books[index]['picture'],
@@ -123,7 +115,7 @@ async def cmd_favourite(message: Message, state: FSMContext):
 
     await state.update_data(books=books)
 
-    if (len(books) == 0):
+    if len(books) == 0:
         await message.answer(
             '<b>Пока что не одна книга не добавленна в "Избранное"!</b>\n\nНайти свою любимую книгу можно в меню <b>"Поиск"</b>',
             reply_markup=kb.main_menu,
@@ -132,11 +124,7 @@ async def cmd_favourite(message: Message, state: FSMContext):
 
     index = data["currentIndex"]
 
-    caption = f'<b>{books[index]["name"]}\n' \
-              f'Автор: {books[index]["author"]}\n\n' \
-              f'Издание: {books[index]["publisher"]}\n' \
-              f'Год: {books[index]["year"]}</b>' \
-              f'\n\n{books[index]["description"]}'
+    caption = BooksUtils.get_book_caption(books[index], index)
 
     await message.answer_photo(
         books[index]['picture'],
@@ -166,15 +154,12 @@ async def cmd_recommend(message: Message, state: FSMContext):
         await message.answer(
             '<b>Пока что мы не можем ничего вам порекомендовать, добавьте книги в прочитанные...</b>\n\nНайти свою любимую книгу можно в меню <b>"Поиск"</b>',
             reply_markup=kb.main_menu,
-            parse_mode=ParseMode.HTML)
+            parse_mode=ParseMode.HTML
+        )
         return
 
     index = data["currentIndex"]
-    caption = f'<b>{books[index]["name"]}\n' \
-              f'Автор: {books[index]["author"]}\n\n' \
-              f'Издание: {books[index]["publisher"]}\n' \
-              f'Год: {books[index]["year"]}</b>' \
-              f'\n\n{books[index]["description"]}'
+    caption = BooksUtils.get_book_caption(books[index], index)
 
     await message.answer_photo(
         books[index]['picture'],
@@ -205,11 +190,7 @@ async def nextBook(callback: CallbackQuery, state: FSMContext):
     else:
         books = db.get_user_favorites(callback.message.chat.id)
 
-    caption = f'<b>{books[index]["name"]}\n' \
-              f'Автор: {books[index]["author"]}\n\n' \
-              f'Издание: {books[index]["publisher"]}\n' \
-              f'Год: {books[index]["year"]}</b>' \
-              f'\n\n{books[index]["description"]}'
+    caption = BooksUtils.get_book_caption(books[index], index)
 
     await callback.message.edit_media(
         InputMediaPhoto(
@@ -244,11 +225,7 @@ async def prevBook(callback: CallbackQuery, state: FSMContext):
     elif cur_state == st.Favorite:
         books = db.get_user_favorites(callback.message.chat.id)
 
-    caption = f'<b>{books[index]["name"]}\n' \
-              f'Автор: {books[index]["author"]}\n\n' \
-              f'Издание: {books[index]["publisher"]}\n' \
-              f'Год: {books[index]["year"]}</b>' \
-              f'\n\n{books[index]["description"]}'
+    caption = BooksUtils.get_book_caption(books[index], index)
 
     await callback.message.edit_media(
         InputMediaPhoto(
@@ -299,11 +276,7 @@ async def toggleFavourite(callback: CallbackQuery, state: FSMContext):
     else:
         db.add_book_to_favorites(callback.message.chat.id, books[index]['book_id'])
 
-    caption = f'<b>{books[index]["name"]}\n' \
-              f'Автор: {books[index]["author"]}\n\n' \
-              f'Издание: {books[index]["publisher"]}\n' \
-              f'Год: {books[index]["year"]}</b>' \
-              f'\n\n{books[index]["description"]}'
+    caption = BooksUtils.get_book_caption(books[index], index)
 
     await callback.message.edit_media(
         InputMediaPhoto(
@@ -355,11 +328,7 @@ async def toggleReaden(callback: CallbackQuery, state: FSMContext):
     else:
         db.add_book_to_user_shelf(callback.message.chat.id, books[index]['book_id'])
 
-    caption = f'<b>{books[index]["name"]}\n' \
-              f'Автор: {books[index]["author"]}\n\n' \
-              f'Издание: {books[index]["publisher"]}\n' \
-              f'Год: {books[index]["year"]}</b>' \
-              f'\n\n{books[index]["description"]}'
+    caption = BooksUtils.get_book_caption(books[index], index)
 
     await callback.message.edit_media(
         InputMediaPhoto(
