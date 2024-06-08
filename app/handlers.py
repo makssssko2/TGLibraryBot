@@ -6,7 +6,7 @@ from aiogram.fsm.context import FSMContext
 
 import app.States as st
 import app.keyboards as kb
-from config import STATIC_DATA
+
 from DB.DB import DB
 from RecommenderSystem.RS import RecommenderSystem
 from utils.BooksUtils import BooksUtils
@@ -20,7 +20,6 @@ recommender = RecommenderSystem()
 async def cmd_start(message: Message, state: FSMContext):
     await state.clear()
     await state.set_state(st.Readen)
-    await state.update_data(booksArr=STATIC_DATA)
     await state.update_data(currentIndex=0)
 
     await message.answer('<b>Вжухх !</b>\n\nСкорее добавляй свои книги в "Прочитанные" и я подберу тебе что-нибудь.',
