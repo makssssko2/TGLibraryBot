@@ -71,6 +71,18 @@ async def cmd_search(message: Message, state: FSMContext):
 
 @router.message(st.Search.input)
 async def search(message: Message, state: FSMContext):
+    if message.text == "\U0001F495 Избранное":
+        cmd_favourite(message,state)
+        return
+    elif message.text == "\U00002B50 Рекомендации":
+        cmd_recommend(message,state)
+        return
+    elif message.text == "\U0001F4DA Прочитанные":
+        cmd_books(message,state)
+        return
+    elif message.text == "\U0001F50E Поиск":
+        cmd_search(message,state)
+        return
     await state.set_state(st.Search)
     await state.update_data(input=message.text)
     await state.update_data(currentIndex=0)
