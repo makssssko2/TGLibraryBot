@@ -45,7 +45,7 @@ async def cmd_books(message: Message, state: FSMContext):
         return
 
     index = data["currentIndex"]
-    caption = BooksUtils.get_book_caption(books[index], index)
+    caption = BooksUtils.get_book_caption(books[index])
 
     await message.answer_photo(
         books[index]['picture'],
@@ -89,7 +89,7 @@ async def search(message: Message, state: FSMContext):
 
     index = data["currentIndex"]
 
-    caption = BooksUtils.get_book_caption(books[index], index)
+    caption = BooksUtils.get_book_caption(books[index])
 
     await message.answer_photo(
         books[index]['picture'],
@@ -124,7 +124,7 @@ async def cmd_favourite(message: Message, state: FSMContext):
 
     index = data["currentIndex"]
 
-    caption = BooksUtils.get_book_caption(books[index], index)
+    caption = BooksUtils.get_book_caption(books[index])
 
     await message.answer_photo(
         books[index]['picture'],
@@ -159,7 +159,7 @@ async def cmd_recommend(message: Message, state: FSMContext):
         return
 
     index = data["currentIndex"]
-    caption = BooksUtils.get_book_caption(books[index], index)
+    caption = BooksUtils.get_book_caption(books[index])
 
     await message.answer_photo(
         books[index]['picture'],
@@ -190,7 +190,7 @@ async def nextBook(callback: CallbackQuery, state: FSMContext):
     else:
         books = db.get_user_favorites(callback.message.chat.id)
 
-    caption = BooksUtils.get_book_caption(books[index], index)
+    caption = BooksUtils.get_book_caption(books[index])
 
     await callback.message.edit_media(
         InputMediaPhoto(
@@ -225,7 +225,7 @@ async def prevBook(callback: CallbackQuery, state: FSMContext):
     elif cur_state == st.Favorite:
         books = db.get_user_favorites(callback.message.chat.id)
 
-    caption = BooksUtils.get_book_caption(books[index], index)
+    caption = BooksUtils.get_book_caption(books[index])
 
     await callback.message.edit_media(
         InputMediaPhoto(
@@ -276,7 +276,7 @@ async def toggleFavourite(callback: CallbackQuery, state: FSMContext):
     else:
         db.add_book_to_favorites(callback.message.chat.id, books[index]['book_id'])
 
-    caption = BooksUtils.get_book_caption(books[index], index)
+    caption = BooksUtils.get_book_caption(books[index])
 
     await callback.message.edit_media(
         InputMediaPhoto(
@@ -328,7 +328,7 @@ async def toggleReaden(callback: CallbackQuery, state: FSMContext):
     else:
         db.add_book_to_user_shelf(callback.message.chat.id, books[index]['book_id'])
 
-    caption = BooksUtils.get_book_caption(books[index], index)
+    caption = BooksUtils.get_book_caption(books[index])
 
     await callback.message.edit_media(
         InputMediaPhoto(
