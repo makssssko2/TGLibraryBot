@@ -47,3 +47,12 @@ class UserFavorite(Base):
     user_id: Mapped[int] = mapped_column(ForeignKey('users.id'))
     book_id: Mapped[int] = mapped_column(ForeignKey('books.id'))
     book = relationship("Books")
+
+
+class TGCard(Base):
+    __tablename__ = 'tg_card'
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey('users.id'))
+    message_id: Mapped[int]
+    current_index: Mapped[int]
+    books_id: Mapped[str]

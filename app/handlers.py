@@ -36,6 +36,8 @@ async def cmd_books(message: Message, state: FSMContext):
     data = await state.get_data()
     books = db.get_user_bookshelf(message.chat.id)
 
+    await state.update_data(books=books)
+
     if len(books) == 0:
         await message.answer(
             '<b>Пока что не одна книга не добавленна в "Прочитанные"!</b>\n\nНайти свою любимую книгу можно в меню <b>"Поиск"</b>',
@@ -46,7 +48,7 @@ async def cmd_books(message: Message, state: FSMContext):
     index = data["currentIndex"]
     caption = BooksUtils.get_book_caption(books[index])
 
-    await message.answer_photo(
+    m = await message.answer_photo(
         books[index]['picture'],
         caption,
         reply_markup=kb.get_swiper_menu(
@@ -57,7 +59,7 @@ async def cmd_books(message: Message, state: FSMContext):
         ),
         parse_mode=ParseMode.HTML
     )
-
+    db.add_tg_card(message.chat.id, m.message_id, 0, [_["book_id"] for _ in books])
 
 @router.message(F.text == '\U0001F50E Поиск')
 async def cmd_search(message: Message, state: FSMContext):
@@ -102,7 +104,7 @@ async def search(message: Message, state: FSMContext):
 
     caption = BooksUtils.get_book_caption(books[index])
 
-    await message.answer_photo(
+    m = await message.answer_photo(
         books[index]['picture'],
         caption,
         reply_markup=kb.get_swiper_menu(
@@ -113,6 +115,7 @@ async def search(message: Message, state: FSMContext):
         ),
         parse_mode=ParseMode.HTML
     )
+    db.add_tg_card(message.chat.id, m.message_id, 0, [_["book_id"] for _ in books])
 
 
 @router.message(F.text == '\U0001F495 Избранное')
@@ -137,7 +140,7 @@ async def cmd_favourite(message: Message, state: FSMContext):
 
     caption = BooksUtils.get_book_caption(books[index])
 
-    await message.answer_photo(
+    m = await message.answer_photo(
         books[index]['picture'],
         caption,
         reply_markup=kb.get_swiper_menu(
@@ -148,6 +151,7 @@ async def cmd_favourite(message: Message, state: FSMContext):
         ),
         parse_mode=ParseMode.HTML
     )
+    db.add_tg_card(message.chat.id, m.message_id, 0, [_["book_id"] for _ in books])
 
 
 @router.message(F.text == '\U00002B50 Рекомендации')
@@ -172,7 +176,7 @@ async def cmd_recommend(message: Message, state: FSMContext):
     index = data["currentIndex"]
     caption = BooksUtils.get_book_caption(books[index])
 
-    await message.answer_photo(
+    m = await message.answer_photo(
         books[index]['picture'],
         caption,
         reply_markup=kb.get_swiper_menu(
@@ -183,23 +187,25 @@ async def cmd_recommend(message: Message, state: FSMContext):
         ),
         parse_mode=ParseMode.HTML
     )
+    db.add_tg_card(message.chat.id, m.message_id, 0, [_["book_id"] for _ in books])
 
 
 @router.callback_query(F.data == 'next')
 async def nextBook(callback: CallbackQuery, state: FSMContext):
-    data = await state.get_data()
+    d = db.get_tg_card(callback.message.chat.id, callback.message.message_id)
+    data = {"currentIndex": d[0], "books": d[1]}
 
     data["currentIndex"] += 1
-    await state.update_data(currentIndex=data["currentIndex"])
+    db.update_tg_card(
+        callback.message.chat.id,
+        callback.message.message_id,
+        data["currentIndex"],
+        [_["book_id"] for _ in data["books"]]
+    )
+
 
     index = data["currentIndex"]
-    cur_state = await state.get_state()
-    if cur_state == st.Readen:
-        books = db.get_user_bookshelf(callback.message.chat.id)
-    elif cur_state == st.Search or cur_state == st.Recommend:
-        books = data["books"]
-    else:
-        books = db.get_user_favorites(callback.message.chat.id)
+    books = data["books"]
 
     caption = BooksUtils.get_book_caption(books[index])
 
@@ -221,7 +227,8 @@ async def nextBook(callback: CallbackQuery, state: FSMContext):
 
 @router.callback_query(F.data == 'prev')
 async def prevBook(callback: CallbackQuery, state: FSMContext):
-    data = await state.get_data()
+    d = db.get_tg_card(callback.message.chat.id, callback.message.message_id)
+    data = {"currentIndex": d[0], "books": d[1]}
 
     data["currentIndex"] -= 1
     await state.update_data(currentIndex=data["currentIndex"])
@@ -229,12 +236,15 @@ async def prevBook(callback: CallbackQuery, state: FSMContext):
     index = data["currentIndex"]
     cur_state = await state.get_state()
 
-    if cur_state == st.Readen:
-        books = db.get_user_bookshelf(callback.message.chat.id)
-    elif cur_state == st.Search or cur_state == st.Recommend:
-        books = data["books"]
-    elif cur_state == st.Favorite:
-        books = db.get_user_favorites(callback.message.chat.id)
+
+    books = data["books"]
+
+    db.update_tg_card(
+        callback.message.chat.id,
+        callback.message.message_id,
+        data["currentIndex"],
+        [_["book_id"] for _ in data["books"]]
+    )
 
     caption = BooksUtils.get_book_caption(books[index])
 
@@ -256,16 +266,14 @@ async def prevBook(callback: CallbackQuery, state: FSMContext):
 
 @router.callback_query(F.data == 'toggleFavourite')
 async def toggleFavourite(callback: CallbackQuery, state: FSMContext):
-    data = await state.get_data()
+    d = db.get_tg_card(callback.message.chat.id, callback.message.message_id)
+    data = {"currentIndex": d[0], "books": d[1]}
+
     index = data["currentIndex"]
 
     cur_state = await state.get_state()
-    if cur_state == st.Readen:
-        books = db.get_user_bookshelf(callback.message.chat.id)
-    elif cur_state == st.Search or cur_state == st.Recommend:
-        books = data["books"]
-    elif cur_state == st.Favorite:
-        books = db.get_user_favorites(callback.message.chat.id)
+
+    books = data["books"]
 
     is_favorite = db.is_book_favorite(callback.message.chat.id, books[index]['book_id'])
     if is_favorite:
@@ -273,8 +281,14 @@ async def toggleFavourite(callback: CallbackQuery, state: FSMContext):
         if cur_state == st.Favorite:
             if index > 0:
                 data['currentIndex'] -= 1
+            books.pop(index)
             books = db.get_user_favorites(callback.message.chat.id)
-            await state.update_data(currentIndex=data["currentIndex"])
+            db.update_tg_card(
+                callback.message.chat.id,
+                callback.message.message_id,
+                data["currentIndex"],
+                [_["book_id"] for _ in books]
+            )
             index = data["currentIndex"]
         if len(books) == 0:
             await callback.message.answer(
@@ -308,16 +322,13 @@ async def toggleFavourite(callback: CallbackQuery, state: FSMContext):
 # Функция добавления/удаления из прочитанных
 @router.callback_query(F.data == 'toggleReaden')
 async def toggleReaden(callback: CallbackQuery, state: FSMContext):
-    data = await state.get_data()
+    d = db.get_tg_card(callback.message.chat.id, callback.message.message_id)
+    data = {"currentIndex": d[0], "books": d[1]}
+
     index = data["currentIndex"]
 
     cur_state = await state.get_state()
-    if cur_state == st.Readen:
-        books = db.get_user_bookshelf(callback.message.chat.id)
-    elif cur_state == st.Favorite:
-        books = db.get_user_favorites(callback.message.chat.id)
-    elif cur_state == st.Search or cur_state == st.Recommend:
-        books = data["books"]
+    books = data["books"]
 
     is_readen = db.is_book_readen(callback.message.chat.id, books[index]['book_id'])
     if is_readen:
@@ -325,8 +336,13 @@ async def toggleReaden(callback: CallbackQuery, state: FSMContext):
         if cur_state == st.Readen:
             if index > 0:
                 data['currentIndex'] -= 1
-            books = db.get_user_bookshelf(callback.message.chat.id)
-            await state.update_data(currentIndex=data["currentIndex"])
+            books.pop(index)
+            db.update_tg_card(
+                callback.message.chat.id,
+                callback.message.message_id,
+                data["currentIndex"],
+                [_["book_id"] for _ in books]
+            )
             index = data["currentIndex"]
         if len(books) == 0:
             await callback.message.answer(

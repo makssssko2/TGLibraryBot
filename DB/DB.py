@@ -1,7 +1,7 @@
 from typing import List, Type
 from sqlalchemy import create_engine, text, func, Table, Column, Integer, String, or_
 from sqlalchemy.orm import sessionmaker
-from .models import Base, Books, Users, UserShelf, UserFavorite
+from .models import Base, Books, Users, UserShelf, UserFavorite, TGCard
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import joinedload
 from .TypedDict.BooksTypedDict import BookInfoTypedDict
@@ -458,12 +458,10 @@ class DB:
                 ).first()
 
                 if favorite_item:
-                    # Книга в избранном, удаляем её
                     session.delete(favorite_item)
                     session.commit()
                     return True
                 else:
-                    # Книга не в избранном, добавляем её
                     new_favorite_item = UserFavorite(
                         user_id=user.id, book_id=book_id
                     )
@@ -474,3 +472,124 @@ class DB:
             except IntegrityError:
                 session.rollback()
                 return False
+
+    def add_tg_card(
+            self,
+            telegram_id: int,
+            message_id: int,
+            current_index: int,
+            books_id: List[int],
+    ) -> None:
+        """Добавляет запись в таблицу TGCard.
+
+        Args:
+            telegram_id: Telegram ID пользователя.
+            message_id: ID сообщения в Telegram.
+            current_index: Текущий индекс в списке книг.
+            books_id: Список ID книг.
+        """
+
+        with self.__sessionmaker() as session:
+            user = session.query(Users).filter_by(telegram_id=telegram_id).first()
+
+            if not user:
+                user = Users(telegram_id=telegram_id)
+                session.add(user)
+                session.commit()
+
+            books_id_str = ",".join(map(str, books_id))
+
+            new_card = TGCard(
+                user_id=user.id,
+                message_id=message_id,
+                current_index=current_index,
+                books_id=books_id_str,
+            )
+            session.add(new_card)
+            session.commit()
+
+    def update_tg_card(
+            self,
+            telegram_id: int,
+            message_id: int,
+            current_index: int,
+            books_id: List[int],
+    ) -> bool:
+        """Обновляет запись в таблице TGCard.
+
+        Args:
+            telegram_id: Telegram ID пользователя.
+            message_id: ID сообщения в Telegram.
+            current_index: Новый текущий индекс в списке книг.
+            books_id: Новый список ID книг.
+
+        Returns:
+            True, если обновление прошло успешно, False в противном случае.
+        """
+
+        with self.__sessionmaker() as session:
+            user = session.query(Users).filter_by(telegram_id=telegram_id).first()
+
+            if not user:
+                return False
+
+            card = (
+                session.query(TGCard)
+                .filter_by(user_id=user.id, message_id=message_id)
+                .first()
+            )
+
+            if not card:
+                return False
+
+            card.current_index = current_index
+            card.books_id = ",".join(map(str, books_id))
+
+            session.commit()
+            return True
+
+    def get_tg_card(
+            self, telegram_id: int, message_id: int
+    ) -> tuple[int, List[BookInfoTypedDict]] | None:
+        """Получает TGCard и информацию о книгах.
+
+        Args:
+            telegram_id: Telegram ID пользователя.
+            message_id: ID сообщения в Telegram.
+
+        Returns:
+            Кортеж из current_index и списка информации о книгах в формате BookInfoTypedDict,
+            или None, если карточка не найдена.
+        """
+
+        with self.__sessionmaker() as session:
+            user = session.query(Users).filter_by(telegram_id=telegram_id).first()
+
+
+            card = (
+                session.query(TGCard)
+                .filter_by(user_id=user.id, message_id=message_id)
+                .first()
+            )
+
+            if not card:
+                return None
+
+            book_ids = list(map(int, card.books_id.split(",")))
+            books = session.query(Books).filter(Books.id.in_(book_ids)).all()
+
+            book_info_list: List[BookInfoTypedDict] = [
+                {
+                    "book_id": int(book.id),
+                    "litres_id": int(book.litres_id),
+                    "picture": str(book.picture),
+                    "author": str(book.author),
+                    "name": str(book.name),
+                    "publisher": str(book.publisher),
+                    "description": str(book.description),
+                    "year": str(book.year),
+                }
+                for book in books
+            ]
+
+            return card.current_index, book_info_list

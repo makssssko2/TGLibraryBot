@@ -4,3 +4,4 @@ venv/
 books.csv
 AI.db
 test.py
+config.py
